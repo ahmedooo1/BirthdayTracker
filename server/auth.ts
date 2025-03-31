@@ -71,21 +71,29 @@ export function setupAuth(app: Express) {
   // Registration endpoint
   app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Validate request body
-      const validated = loginSchema.parse(req.body);
+      // Validate request body against full InsertUser schema
+      const { username, email, password, role = UserRole.MEMBER } = req.body;
       
       // Check if user already exists
-      const existingUser = await storage.getUserByUsername(validated.username);
+      const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ message: "Ce nom d'utilisateur est déjà utilisé" });
+      }
+      
+      // Check if email already exists
+      if (email) {
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ message: "Cet email est déjà utilisé" });
+        }
       }
 
       // Create user with hashed password
       const userData: InsertUser = {
-        username: validated.username,
-        email: `${validated.username}@example.com`, // Temporary email 
-        password: await hashPassword(validated.password),
-        role: UserRole.MEMBER, // Default role
+        username,
+        email: email || `${username}@example.com`, // Fallback if no email provided
+        password: await hashPassword(password),
+        role,
       };
 
       const user = await storage.createUser(userData);

@@ -4,7 +4,7 @@ import session from "express-session";
 import { db } from "./db";
 import { eq, and, sql, ilike, desc, gte, lte } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -50,8 +50,7 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Express session store
   
   constructor() {
-    // Create a pool and reuse the DATABASE_URL
-    const pool = neon(process.env.DATABASE_URL!);
+    // Connexion PostgreSQL pour la session store
     this.sessionStore = new PostgresSessionStore({ 
       conObject: {
         connectionString: process.env.DATABASE_URL,
@@ -77,12 +76,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values({
-      username: insertUser.username,
-      email: insertUser.email,
-      password: insertUser.password,
-      role: insertUser.role
-    }).returning();
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
@@ -101,11 +95,7 @@ export class DatabaseStorage implements IStorage {
 
   // Group operations
   async createGroup(group: InsertGroup): Promise<Group> {
-    const [newGroup] = await db.insert(groups).values({
-      name: group.name,
-      description: group.description,
-      password: group.password
-    }).returning();
+    const [newGroup] = await db.insert(groups).values(group).returning();
     return newGroup;
   }
 
@@ -144,11 +134,7 @@ export class DatabaseStorage implements IStorage {
 
   // UserGroup operations
   async addUserToGroup(userGroup: InsertUserGroup): Promise<UserGroup> {
-    const [newUserGroup] = await db.insert(userGroups).values({
-      userId: userGroup.userId,
-      groupId: userGroup.groupId,
-      isLeader: userGroup.isLeader
-    }).returning();
+    const [newUserGroup] = await db.insert(userGroups).values(userGroup).returning();
     return newUserGroup;
   }
 
@@ -189,13 +175,7 @@ export class DatabaseStorage implements IStorage {
 
   // Birthday operations
   async createBirthday(birthday: InsertBirthday): Promise<Birthday> {
-    const [newBirthday] = await db.insert(birthdays).values({
-      name: birthday.name,
-      birthDate: birthday.birthDate,
-      groupId: birthday.groupId,
-      notes: birthday.notes,
-      createdBy: birthday.createdBy
-    }).returning();
+    const [newBirthday] = await db.insert(birthdays).values(birthday).returning();
     return newBirthday;
   }
 
