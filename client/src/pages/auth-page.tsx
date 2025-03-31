@@ -4,20 +4,14 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
-
-const loginSchema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { loginSchema } from "@shared/schema";
+import type { LoginData } from "@shared/schema";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -32,28 +26,28 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   // Login form
-  const loginForm = useForm<LoginFormData>({
+  const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
   // Register form (using the same schema for simplicity)
-  const registerForm = useForm<LoginFormData>({
+  const registerForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
-  const onLoginSubmit = (data: LoginFormData) => {
+  const onLoginSubmit = (data: LoginData) => {
     loginMutation.mutate(data);
   };
 
-  const onRegisterSubmit = (data: LoginFormData) => {
+  const onRegisterSubmit = (data: LoginData) => {
     registerMutation.mutate(data);
   };
 
@@ -79,12 +73,12 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="email"
+                      name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Nom d'utilisateur</FormLabel>
                           <FormControl>
-                            <Input placeholder="exemple@mail.com" {...field} />
+                            <Input placeholder="votre_nom" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -121,12 +115,12 @@ export default function AuthPage() {
                   <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                     <FormField
                       control={registerForm.control}
-                      name="email"
+                      name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Nom d'utilisateur</FormLabel>
                           <FormControl>
-                            <Input placeholder="exemple@mail.com" {...field} />
+                            <Input placeholder="votre_nom" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

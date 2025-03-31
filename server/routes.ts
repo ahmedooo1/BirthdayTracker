@@ -1,10 +1,18 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertBirthdaySchema, insertGroupSchema, UserRole } from "@shared/schema";
+import { insertBirthdaySchema, insertGroupSchema, UserRole, User } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+
+// Helper function to handle authenticated routes with type-safe req.user
+function withUser(req: Request): User {
+  if (!req.user) {
+    throw new Error("User not authenticated");
+  }
+  return req.user as User;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication and get middleware
@@ -13,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix
   
   // User routes
-  app.get("/api/users", ensureAdmin, async (req, res, next) => {
+  app.get("/api/users", ensureAdmin, async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get all users (admin only)
       const allUsers = await storage.getAllUsers();
@@ -52,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Group routes
-  app.post("/api/groups", ensureAuthenticated, async (req, res, next) => {
+  app.post("/api/groups", ensureAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validatedData = insertGroupSchema.parse(req.body);
       
@@ -61,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add the creator as a group leader
       await storage.addUserToGroup({
-        userId: req.user.id,
+        userId: req.user!.id,
         groupId: group.id,
         isLeader: true
       });
@@ -76,25 +84,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/groups", ensureAuthenticated, async (req, res, next) => {
+  app.get("/api/groups", ensureAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get groups that the user belongs to
-      const groups = await storage.getGroupsByUserId(req.user.id);
+      const groups = await storage.getGroupsByUserId(req.user!.id);
       res.json(groups);
     } catch (error) {
       next(error);
     }
   });
 
-  app.get("/api/groups/:id", ensureAuthenticated, async (req, res, next) => {
+  app.get("/api/groups/:id", ensureAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const user = withUser(req);
       const { id } = req.params;
       const groupId = parseInt(id);
       
       // Check if user has access to this group
-      const isUserInGroup = await storage.isUserInGroup(req.user.id, groupId);
+      const isUserInGroup = await storage.isUserInGroup(user.id, groupId);
       
-      if (!isUserInGroup && req.user.role !== 'ADMIN') {
+      if (!isUserInGroup && user.role !== 'ADMIN') {
         return res.status(403).json({ message: "Accès non autorisé à ce groupe" });
       }
       

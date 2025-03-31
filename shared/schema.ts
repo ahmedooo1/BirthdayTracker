@@ -81,11 +81,7 @@ export const birthdaysRelations = relations(birthdays, ({ one }) => ({
 }));
 
 // Zod schemas for validation and types
-export const insertUserSchema = createInsertSchema(users, {
-  email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(["ADMIN", "GROUP_LEADER", "MEMBER"]),
-}).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 
 export const insertGroupSchema = createInsertSchema(groups).omit({ id: true, createdAt: true });
 
@@ -95,7 +91,7 @@ export const insertBirthdaySchema = createInsertSchema(birthdays).omit({ id: tru
 
 // Login schema (separate from insert schema)
 export const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3),
   password: z.string().min(6),
 });
 

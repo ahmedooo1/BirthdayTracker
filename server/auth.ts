@@ -1,14 +1,16 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User, InsertUser, UserRole, loginSchema } from "@shared/schema";
+import { InsertUser, UserRole, loginSchema } from "@shared/schema";
+import type { User } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
+// Use the User type from schema directly
 declare global {
   namespace Express {
     interface User extends User {}
@@ -48,12 +50,11 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(new LocalStrategy(
-    { usernameField: 'email' },
-    async (email, password, done) => {
+    async (username, password, done) => {
       try {
-        const user = await storage.getUserByEmail(email);
+        const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false, { message: "Email ou mot de passe incorrect" });
+          return done(null, false, { message: "Nom d'utilisateur ou mot de passe incorrect" });
         }
         return done(null, user);
       } catch (error) {
@@ -73,21 +74,21 @@ export function setupAuth(app: Express) {
   });
 
   // Registration endpoint
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Validate request body
       const validated = loginSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(validated.email);
+      const existingUser = await storage.getUserByUsername(validated.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Cette adresse email est déjà utilisée" });
+        return res.status(400).json({ message: "Ce nom d'utilisateur est déjà utilisé" });
       }
 
       // Create user with hashed password
       const userData: InsertUser = {
-        username: validated.email.split('@')[0], // Default username from email
-        email: validated.email,
+        username: validated.username,
+        email: `${validated.username}@example.com`, // Temporary email 
         password: await hashPassword(validated.password),
         role: UserRole.MEMBER, // Default role
       };
@@ -95,7 +96,7 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser(userData);
       
       // Auto-login after registration
-      req.login(user, (err) => {
+      req.login(user, (err: any) => {
         if (err) return next(err);
         // Return user without password
         const { password, ...userWithoutPassword } = user;
@@ -111,12 +112,12 @@ export function setupAuth(app: Express) {
   });
 
   // Login endpoint
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate('local', (err: any, user: User, info: any) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info.message || "Authentification échouée" });
+      if (!user) return res.status(401).json({ message: info?.message || "Authentification échouée" });
       
-      req.login(user, (err) => {
+      req.login(user, (err: any) => {
         if (err) return next(err);
         // Return user without password
         const { password, ...userWithoutPassword } = user;
@@ -126,15 +127,15 @@ export function setupAuth(app: Express) {
   });
 
   // Logout endpoint
-  app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
+  app.post("/api/logout", (req: Request, res: Response, next: NextFunction) => {
+    req.logout((err: any) => {
       if (err) return next(err);
       res.sendStatus(200);
     });
   });
 
   // Get current user endpoint
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Non authentifié" });
     }
@@ -144,7 +145,7 @@ export function setupAuth(app: Express) {
   });
 
   // Middleware for checking authentication
-  const ensureAuthenticated = (req, res, next) => {
+  const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     if (req.isAuthenticated()) {
       return next();
     }
@@ -152,16 +153,16 @@ export function setupAuth(app: Express) {
   };
 
   // Middleware for checking admin role
-  const ensureAdmin = (req, res, next) => {
-    if (req.isAuthenticated() && req.user.role === UserRole.ADMIN) {
+  const ensureAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated() && req.user && req.user.role === UserRole.ADMIN) {
       return next();
     }
     res.status(403).json({ message: "Accès non autorisé" });
   };
 
   // Middleware for checking group leader role
-  const ensureGroupLeader = (req, res, next) => {
-    if (req.isAuthenticated() && 
+  const ensureGroupLeader = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated() && req.user && 
         (req.user.role === UserRole.ADMIN || req.user.role === UserRole.GROUP_LEADER)) {
       return next();
     }
