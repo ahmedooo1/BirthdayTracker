@@ -77,14 +77,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [user] = await db.insert(users).values({
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      role: insertUser.role
+    }).returning();
     return user;
   }
 
   async updateUserRole(id: number, role: UserRole): Promise<User | undefined> {
     const [updatedUser] = await db
       .update(users)
-      .set({ role })
+      .set({ role: role })
       .where(eq(users.id, id))
       .returning();
     return updatedUser;
@@ -96,7 +101,11 @@ export class DatabaseStorage implements IStorage {
 
   // Group operations
   async createGroup(group: InsertGroup): Promise<Group> {
-    const [newGroup] = await db.insert(groups).values(group).returning();
+    const [newGroup] = await db.insert(groups).values({
+      name: group.name,
+      description: group.description,
+      password: group.password
+    }).returning();
     return newGroup;
   }
 
@@ -135,7 +144,11 @@ export class DatabaseStorage implements IStorage {
 
   // UserGroup operations
   async addUserToGroup(userGroup: InsertUserGroup): Promise<UserGroup> {
-    const [newUserGroup] = await db.insert(userGroups).values(userGroup).returning();
+    const [newUserGroup] = await db.insert(userGroups).values({
+      userId: userGroup.userId,
+      groupId: userGroup.groupId,
+      isLeader: userGroup.isLeader
+    }).returning();
     return newUserGroup;
   }
 
@@ -176,7 +189,13 @@ export class DatabaseStorage implements IStorage {
 
   // Birthday operations
   async createBirthday(birthday: InsertBirthday): Promise<Birthday> {
-    const [newBirthday] = await db.insert(birthdays).values(birthday).returning();
+    const [newBirthday] = await db.insert(birthdays).values({
+      name: birthday.name,
+      birthDate: birthday.birthDate,
+      groupId: birthday.groupId,
+      notes: birthday.notes,
+      createdBy: birthday.createdBy
+    }).returning();
     return newBirthday;
   }
 

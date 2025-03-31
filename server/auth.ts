@@ -10,12 +10,7 @@ import type { User } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
-// Use the User type from schema directly
-declare global {
-  namespace Express {
-    interface User extends User {}
-  }
-}
+// No need to redeclare User interface here since it's properly defined in types/express.d.ts
 
 const scryptAsync = promisify(scrypt);
 

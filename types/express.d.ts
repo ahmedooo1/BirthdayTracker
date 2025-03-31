@@ -1,13 +1,8 @@
-import { User } from "../shared/schema";
+import { User as SchemaUser } from "../shared/schema";
 
 declare global {
   namespace Express {
-    interface User {
-      id: number;
-      username: string;
-      email: string;
-      role: string;
-      password: string;
-    }
+    // Extend the user interface with properties from our schema
+    interface User extends SchemaUser {}
   }
 }

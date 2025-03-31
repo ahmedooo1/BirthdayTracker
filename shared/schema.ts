@@ -81,13 +81,26 @@ export const birthdaysRelations = relations(birthdays, ({ one }) => ({
 }));
 
 // Zod schemas for validation and types
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    role: z.nativeEnum(UserRole)
+  })
+  .omit({ id: true });
 
 export const insertGroupSchema = createInsertSchema(groups).omit({ id: true, createdAt: true });
 
-export const insertUserGroupSchema = createInsertSchema(userGroups).omit({ id: true });
+export const insertUserGroupSchema = createInsertSchema(userGroups)
+  .extend({
+    isLeader: z.boolean().optional().default(false)
+  })
+  .omit({ id: true });
 
-export const insertBirthdaySchema = createInsertSchema(birthdays).omit({ id: true, createdAt: true });
+export const insertBirthdaySchema = createInsertSchema(birthdays)
+  .extend({
+    notes: z.string().optional(),
+    createdBy: z.number().optional()
+  })
+  .omit({ id: true, createdAt: true });
 
 // Login schema (separate from insert schema)
 export const loginSchema = z.object({

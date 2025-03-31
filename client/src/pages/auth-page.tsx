@@ -10,8 +10,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
-import { loginSchema } from "@shared/schema";
-import type { LoginData } from "@shared/schema";
+import { loginSchema, insertUserSchema, UserRole } from "@shared/schema";
+import type { LoginData, InsertUser } from "@shared/schema";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -34,12 +34,14 @@ export default function AuthPage() {
     },
   });
 
-  // Register form (using the same schema for simplicity)
-  const registerForm = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
+  // Register form with email field
+  const registerForm = useForm<InsertUser>({
+    resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
       password: "",
+      email: "",
+      role: UserRole.MEMBER,
     },
   });
 
@@ -47,7 +49,7 @@ export default function AuthPage() {
     loginMutation.mutate(data);
   };
 
-  const onRegisterSubmit = (data: LoginData) => {
+  const onRegisterSubmit = (data: InsertUser) => {
     registerMutation.mutate(data);
   };
 
@@ -121,6 +123,19 @@ export default function AuthPage() {
                           <FormLabel>Nom d'utilisateur</FormLabel>
                           <FormControl>
                             <Input placeholder="votre_nom" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="votre.email@exemple.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
